@@ -13,12 +13,16 @@ public class EsraMovement : MonoBehaviour {
     [HideInInspector] public float inputY;
     [HideInInspector] public bool inputJump;
 
-    private Rigidbody rb;
-    private CapsuleCollider col;
-    private bool isGrounded;
-    private bool isClimbing;
-    private Collider currentPole;
-    private Collider currentPlatform;
+    public Rigidbody rb;
+    public CapsuleCollider col;
+    public bool isGrounded;
+    public bool isClimbing;
+    public Collider currentPole;
+    public Collider currentPlatform;
+
+    public float jumpTimer = 0f;
+
+    public float jumpBufferTimer = 0f;
 
     void Start() {
         rb = GetComponent<Rigidbody>();
@@ -27,30 +31,41 @@ public class EsraMovement : MonoBehaviour {
     }
 
     void Update() {
-        if (!useAIControl) {
-            inputX = Input.GetAxisRaw("Horizontal");
-            inputY = Input.GetAxisRaw("Vertical");
-            inputJump = Input.GetKeyDown(KeyCode.UpArrow);
+        float moveX = inputX;
+        float moveY = inputY;
+
+        if (Input.GetAxisRaw("Horizontal") != 0) moveX = Input.GetAxisRaw("Horizontal");
+        if (Input.GetAxisRaw("Vertical") != 0) moveY = Input.GetAxisRaw("Vertical");
+
+        if (jumpTimer > 0) jumpTimer -= Time.deltaTime;
+        if (jumpBufferTimer > 0) jumpBufferTimer -= Time.deltaTime;
+
+        if (inputJump || Input.GetKeyDown(KeyCode.UpArrow)) {
+            jumpBufferTimer = 0.2f;
+            inputJump = false;
         }
-        if (currentPole != null && Mathf.Abs(inputY) > 0.1f) {
+
+        if (currentPole != null && Mathf.Abs(moveY) > 0.1f) {
             isClimbing = true;
             rb.useGravity = false;
         }
         
         if (isClimbing) {
-            rb.linearVelocity = new Vector3(0, inputY * climbSpeed, 0);
-            if (Mathf.Abs(inputX) > 0.1f) {
+            rb.linearVelocity = new Vector3(0, moveY * climbSpeed, 0);
+            
+            if (Mathf.Abs(moveX) > 0.1f) {
                 isClimbing = false;
                 rb.useGravity = true;
-                rb.linearVelocity = new Vector3(inputX * moveSpeed, rb.linearVelocity.y, 0); 
+                rb.linearVelocity = new Vector3(moveX * moveSpeed, rb.linearVelocity.y, 0); 
             }
         }
         else {
-            rb.linearVelocity = new Vector3(inputX * moveSpeed, rb.linearVelocity.y, 0);
+            rb.linearVelocity = new Vector3(moveX * moveSpeed, rb.linearVelocity.y, 0);
             
-            if (inputJump && isGrounded) {
+            if (jumpBufferTimer > 0 && isGrounded && jumpTimer <= 0) {
                 rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-                inputJump = false;
+                jumpTimer = 0.2f;
+                jumpBufferTimer = 0f;
             }
         }
     }

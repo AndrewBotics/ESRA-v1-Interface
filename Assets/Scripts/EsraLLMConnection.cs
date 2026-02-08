@@ -8,7 +8,7 @@ public class EsraLLMConnection : MonoBehaviour {
     
     public EsraMovement characterController; 
 
-    private float actionTimer = 0f;
+    public float actionTimer = 0f;
 
     async void Start() {
         characterController = GetComponent<EsraMovement>();
@@ -43,11 +43,13 @@ public class EsraLLMConnection : MonoBehaviour {
     }
 
     void SendGameState() {
-        if (websocket.State == WebSocketState.Open) {
-            string json = "{\"event\": \"request_decision\", \"is_grounded\": true}";
-            websocket.SendText(json);
-        }
+    if (websocket.State == WebSocketState.Open) {
+        string groundedStatus = characterController.isGrounded ? "true" : "false";
+        string json = $"{{\"event\": \"request_decision\", \"is_grounded\": {groundedStatus}}}";
+        
+        websocket.SendText(json);
     }
+}
 
     void ProcessBrainCommand(string json) {
         if (json.Contains("JUMP")) {
