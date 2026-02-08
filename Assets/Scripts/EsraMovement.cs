@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 
 public class EsraMovement : MonoBehaviour {
     [Header("Robot Stats")]
@@ -7,7 +6,13 @@ public class EsraMovement : MonoBehaviour {
     public float jumpForce = 7f;
     public float climbSpeed = 3f;
     
-    // State tracking
+    [Header("AI Control")]
+    public bool useAIControl = true;
+    
+    [HideInInspector] public float inputX; 
+    [HideInInspector] public float inputY;
+    [HideInInspector] public bool inputJump;
+
     private Rigidbody rb;
     private CapsuleCollider col;
     private bool isGrounded;
@@ -22,31 +27,33 @@ public class EsraMovement : MonoBehaviour {
     }
 
     void Update() {
-        float hInput = Input.GetAxisRaw("Horizontal"); // -1 = Left, 0 = Null, 1 = Right
-        float vInput = Input.GetAxisRaw("Vertical");   // -1 = Down, 0 = Null, 1 = Up
-
-        // Climbing
-        if (currentPole != null && Mathf.Abs(vInput)>0.1f) {
+        if (!useAIControl) {
+            inputX = Input.GetAxisRaw("Horizontal");
+            inputY = Input.GetAxisRaw("Vertical");
+            inputJump = Input.GetKeyDown(KeyCode.UpArrow);
+        }
+        if (currentPole != null && Mathf.Abs(inputY) > 0.1f) {
             isClimbing = true;
             rb.useGravity = false;
         }
         
         if (isClimbing) {
-            rb.linearVelocity = new Vector3(0, vInput * climbSpeed, 0);
-            if (Mathf.Abs(hInput) > 0.1f){
+            rb.linearVelocity = new Vector3(0, inputY * climbSpeed, 0);
+            if (Mathf.Abs(inputX) > 0.1f) {
                 isClimbing = false;
                 rb.useGravity = true;
+                rb.linearVelocity = new Vector3(inputX * moveSpeed, rb.linearVelocity.y, 0); 
             }
         }
         else {
-            rb.linearVelocity = new Vector3(hInput*moveSpeed, rb.linearVelocity.y, 0);
-            if (Input.GetKeyDown(KeyCode.UpArrow) && isGrounded) {
-                rb.AddForce(Vector3.up*jumpForce, ForceMode.Impulse);
+            rb.linearVelocity = new Vector3(inputX * moveSpeed, rb.linearVelocity.y, 0);
+            
+            if (inputJump && isGrounded) {
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                inputJump = false;
             }
         }
     }
-
-    // Collisions for Poles/Ground
     private void OnCollisionEnter(Collision collision) {
         if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Platform")) {
             isGrounded = true;
@@ -63,7 +70,6 @@ public class EsraMovement : MonoBehaviour {
         }
     }
 
-    // Pole Stuff
     private void OnTriggerEnter(Collider other) {
         if (other.CompareTag("Pole")) {
             currentPole = other;
