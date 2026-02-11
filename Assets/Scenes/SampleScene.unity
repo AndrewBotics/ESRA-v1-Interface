@@ -923,7 +923,6 @@ GameObject:
   - component: {fileID: 1096632621}
   - component: {fileID: 1096632620}
   - component: {fileID: 1096632625}
-  - component: {fileID: 1096632626}
   - component: {fileID: 1096632627}
   m_Layer: 0
   m_Name: ESRA
@@ -1010,36 +1009,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82b422ca25944465bbdef59ef561fb26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EsraMovement
+  serverUrl: ws://localhost:8765
+  useAIControl: 1
   moveSpeed: 5
   jumpForce: 7
   climbSpeed: 3
-  useAIControl: 1
   inputX: 0
   inputY: 0
   inputJump: 0
-  rb: {fileID: 0}
-  col: {fileID: 0}
   isGrounded: 0
   isClimbing: 0
   currentPole: {fileID: 0}
   currentPlatform: {fileID: 0}
-  jumpTimer: 0
-  jumpBufferTimer: 0
---- !u!114 &1096632626
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1096632619}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7c02ca7e203964d6a98b3cf323277030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EsraLLMConnection
-  serverUrl: ws://localhost:8765
-  characterController: {fileID: 0}
-  actionTimer: 0
 --- !u!23 &1096632627
 MeshRenderer:
   m_ObjectHideFlags: 0
