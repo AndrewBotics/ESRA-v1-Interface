@@ -4,7 +4,8 @@ using System.Text;
 
 public class EsraMovement : MonoBehaviour {
     [Header("Network Settings")]
-    public string serverUrl = "ws://localhost:8765";
+    public string serverUrl = "ws://127.0.0.1:8765/";
+    
     public bool useAIControl = true;
 
     [Header("Robot Stats")]
