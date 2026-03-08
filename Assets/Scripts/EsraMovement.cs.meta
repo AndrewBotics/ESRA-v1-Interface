@@ -1,2 +1,17 @@
 fileFormatVersion: 2
 guid: 82b422ca25944465bbdef59ef561fb26
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - esraAnimator: {instanceID: 0}
+  - currentPole: {instanceID: 0}
+  - currentPlatform: {instanceID: 0}
+  - esraVisuals: {instanceID: 0}
+  - TeleportYellow: {fileID: 1729002104671122375, guid: 0c50b283864860840958e1a3080e0c5d, type: 3}
+  - TeleportGreen: {fileID: 5092685050143444650, guid: 09474f0f82131a540b1fc4f5bf74b638, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

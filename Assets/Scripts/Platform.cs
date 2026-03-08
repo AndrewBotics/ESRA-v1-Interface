@@ -27,8 +27,7 @@ public class Platform : MonoBehaviour
         bool isAbove = playerFeet > (platformTop - buffer);
         bool isFalling = playerRb.linearVelocity.y<=0.1f;
         
-        bool wantsToDrop = playerScript.inputY<-0.1f || (Input.GetAxisRaw("Vertical")<-0.1f); 
-        bool shouldCollide = isAbove && isFalling && !wantsToDrop;
+        bool shouldCollide = isAbove && isFalling;
         Physics.IgnoreCollision(playerCollider, platformCollider, !shouldCollide);
     }
 }
