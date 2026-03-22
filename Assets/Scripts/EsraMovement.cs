@@ -2,12 +2,14 @@ using UnityEngine;
 using NativeWebSocket;
 using System.Collections;
 using System.Text;
+using System.Threading.Tasks;
 
 public class EsraMovement : MonoBehaviour {
     [Header("Network Settings")]
     public string serverUrl = "ws://127.0.0.1:8765/";
     public Animator esraAnimator;
     public bool useAIControl = true;
+    private bool isReconnecting = false;
 
     [Header("Robot Stats")]
     public float moveSpeed = 5f;
@@ -53,24 +55,76 @@ public class EsraMovement : MonoBehaviour {
         col = GetComponent<CapsuleCollider>();
         rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
 
-        // Web Socket connections
-        websocket = new WebSocket(serverUrl);
-        websocket.OnOpen += () => Debug.Log("Connected to ESRA's Server!");
-        websocket.OnError += (e) => Debug.Log("Error! " + e);
-        websocket.OnClose += (e) => Debug.Log("Connection closed!");
+        InvokeRepeating("SendGameState", 1.0f, 0.5f);
 
+        // Connect once the first time
+        await ConnectToBrain();
+    }
+
+    private async Task ConnectToBrain() {
+        if (websocket != null && websocket.State == WebSocketState.Open) return;
+
+        websocket = new WebSocket(serverUrl);
+        
+        websocket.OnOpen += () => {
+            Debug.Log(">>> Connected to ESRA's Server!");
+            isReconnecting = false;
+        };
+        
+        websocket.OnError += (e) => Debug.Log("Error! " + e);
+        
+        websocket.OnClose += (e) => {
+            Debug.LogWarning(">>> Connection closed! Triggering safety stop.");
+            SafetyStop();
+            
+            if (!isReconnecting && Application.isPlaying) {
+                StartCoroutine(ReconnectSequence());
+            }
+        };
+        
         websocket.OnMessage += (bytes) => {
             string message = Encoding.UTF8.GetString(bytes);
             ProcessBrainCommand(message);
         };
 
-        await websocket.Connect();
-        InvokeRepeating("SendGameState", 1.0f, 0.5f);
+        try {
+            await websocket.Connect();
+        } catch (System.Exception e) {
+            Debug.LogError(">>> WebSocket Connect() threw: " + e.Message);
+            // If the initial connection fails, force the reconnect loop
+            if (!isReconnecting && Application.isPlaying) {
+                StartCoroutine(ReconnectSequence());
+            }
+        }
+    }
+
+    private IEnumerator ReconnectSequence() {
+        isReconnecting = true;
+        
+        while (websocket == null || websocket.State != WebSocketState.Open) {
+            Debug.Log("Attempting to wake ESRA's brain in 3 seconds...");
+            yield return new WaitForSeconds(3f);
+            
+            _ = ConnectToBrain();
+            
+            yield return new WaitForSeconds(1f); 
+        }
+    }
+
+    private void SafetyStop() {
+        // Clear all AI inputs so she doesn't get stuck doing the last commanded action forever
+        inputX = 0;
+        inputY = 0;
+        inputJump = false;
+        inputTeleport = 0;
+        actionTimer = 0;
     }
 
     void Update() {
-        #if !UNITY_WEBGL || UNITY_EDITOR
-            websocket.DispatchMessageQueue();
+        #if UNITY_EDITOR || !UNITY_WEBGL
+            if (websocket != null && websocket.State == WebSocketState.Open) {
+                websocket.DispatchMessageQueue();
+            }
         #endif
 
         if (actionTimer > 0) {
@@ -134,7 +188,7 @@ public class EsraMovement : MonoBehaviour {
     }
 
     private void SendGameState() {
-        if (websocket.State == WebSocketState.Open) {
+        if (websocket!=null && websocket.State == WebSocketState.Open) {
             string groundedStatus = isGrounded ? "true" : "false";
             string json = $"{{\"event\": \"request_decision\", \"is_grounded\": {groundedStatus}}}";
             websocket.SendText(json);
@@ -142,14 +196,22 @@ public class EsraMovement : MonoBehaviour {
     }
 
     private void ProcessBrainCommand(string json) {
+        float duration = 2.0f;
+        if (json.Contains("\"duration\":")) {
+            string[] parts = json.Split(new string[]{"\"duration\":"}, System.StringSplitOptions.None);
+            if (parts.Length > 1) {
+                float.TryParse(parts[1].TrimEnd('}').Trim(), out duration);
+            }
+        }
+
         if (json.Contains("JUMP")) inputJump = true;
         if (json.Contains("WALK_RIGHT")) {
             inputX = 1f;
-            actionTimer = 1f;
+            actionTimer = duration;
         }
         else if (json.Contains("WALK_LEFT")) {
             inputX = -1f;
-            actionTimer = 1f;
+            actionTimer = duration;
         }
         else if (json.Contains("STOP")) {
             inputX = 0;
@@ -162,11 +224,11 @@ public class EsraMovement : MonoBehaviour {
         }
         else if (json.Contains("TELEPORT_UP")){
             inputTeleport = 1f;
-            actionTimer = 1f;
+            actionTimer = duration;
         }
         else if (json.Contains("TELEPORT_DOWN")){
             inputTeleport = -1f;
-            actionTimer = 1f;
+            actionTimer = duration;
         }
     }
 
